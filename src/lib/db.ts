@@ -55,14 +55,33 @@ const SCHEMA = `
     confidence      TEXT    NOT NULL,
     handout_generated INTEGER NOT NULL DEFAULT 0,
     admin_notes     TEXT,
-    completed_at    TEXT    NOT NULL
+    completed_at    TEXT    NOT NULL,
+    method          TEXT    NOT NULL DEFAULT 'questionnaire',
+    rationale       TEXT,
+    transcript_json TEXT
   );
 `;
+
+// Columns added after the initial release; applied to pre-existing databases.
+const MIGRATIONS = [
+  `ALTER TABLE employees ADD COLUMN method TEXT NOT NULL DEFAULT 'questionnaire'`,
+  `ALTER TABLE employees ADD COLUMN rationale TEXT`,
+  `ALTER TABLE employees ADD COLUMN transcript_json TEXT`,
+];
 
 async function ready(): Promise<Client> {
   const c = client();
   if (!global.__discReady) {
-    global.__discReady = c.execute(SCHEMA).then(() => undefined);
+    global.__discReady = (async () => {
+      await c.execute(SCHEMA);
+      for (const m of MIGRATIONS) {
+        try {
+          await c.execute(m);
+        } catch {
+          // column already exists — ignore
+        }
+      }
+    })();
   }
   await global.__discReady;
   return c;
@@ -87,6 +106,9 @@ export interface Employee {
   handoutGenerated: boolean;
   adminNotes: string | null;
   completedAt: string;
+  method: 'questionnaire' | 'conversation';
+  rationale: string | null;
+  transcript: { role: 'user' | 'assistant'; content: string }[] | null;
 }
 
 type Row = Record<string, unknown>;
@@ -109,6 +131,9 @@ function rowToEmployee(r: Row): Employee {
     handoutGenerated: Number(r.handout_generated) !== 0,
     adminNotes: r.admin_notes != null ? String(r.admin_notes) : null,
     completedAt: String(r.completed_at),
+    method: r.method === 'conversation' ? 'conversation' : 'questionnaire',
+    rationale: r.rationale != null ? String(r.rationale) : null,
+    transcript: r.transcript_json != null ? JSON.parse(String(r.transcript_json)) : null,
   };
 }
 
@@ -127,6 +152,9 @@ export interface NewEmployee {
   secondary: Style;
   blend: string;
   confidence: Confidence;
+  method?: 'questionnaire' | 'conversation';
+  rationale?: string | null;
+  transcript?: { role: 'user' | 'assistant'; content: string }[] | null;
 }
 
 export async function insertEmployee(e: NewEmployee): Promise<number> {
@@ -134,8 +162,8 @@ export async function insertEmployee(e: NewEmployee): Promise<number> {
   const res = await c.execute({
     sql: `INSERT INTO employees
       (name, department, role, email, language, answers_json, scores_json, least_json,
-       primary_style, secondary_style, blend, confidence, completed_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       primary_style, secondary_style, blend, confidence, completed_at, method, rationale, transcript_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       e.name,
       e.department,
@@ -150,6 +178,9 @@ export async function insertEmployee(e: NewEmployee): Promise<number> {
       e.blend,
       e.confidence,
       new Date().toISOString(),
+      e.method ?? 'questionnaire',
+      e.rationale ?? null,
+      e.transcript ? JSON.stringify(e.transcript) : null,
     ],
   });
   return Number(res.lastInsertRowid ?? 0);

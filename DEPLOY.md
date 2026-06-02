@@ -35,8 +35,16 @@ URL.
   | `TURSO_AUTH_TOKEN` | the token from step 1 |
   | `ADMIN_PASSWORD` | a password you choose |
   | `ADMIN_SESSION_SECRET` | any long random string |
+  | `ANTHROPIC_API_KEY` | *(optional)* enables the "Chat with our assistant" AI mode |
 - Click **Deploy**. In ~2 minutes you get a URL like
   `https://disc-assessment.vercel.app`.
+
+> **AI conversational assessment (optional).** If you set `ANTHROPIC_API_KEY`
+> (from <https://console.anthropic.com>), the landing page also offers an AI
+> chat: a natural 5–10 minute conversation about everyday situations that infers
+> D/I/S/C indirectly. Without the key, only the questionnaire is shown — nothing
+> breaks. Override the model with `DISC_CHAT_MODEL` (defaults to
+> `claude-opus-4-8`; e.g. `claude-sonnet-4-6` for lower cost).
 
 ### 3. Use it
 - Employees: share the base URL.

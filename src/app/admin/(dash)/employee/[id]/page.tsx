@@ -30,6 +30,9 @@ export default async function EmployeeResultPage({ params }: { params: { id: str
             {emp.role} · {emp.department}
             {emp.email ? ` · ${emp.email}` : ''} · completed {new Date(emp.completedAt).toLocaleString()}
           </p>
+          <span className="mt-2 inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+            {emp.method === 'conversation' ? 'AI conversation' : 'Questionnaire'}
+          </span>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -79,9 +82,33 @@ export default async function EmployeeResultPage({ params }: { params: { id: str
             </div>
           </Card>
 
+          {emp.method === 'conversation' && emp.rationale && (
+            <Card title="How the AI read the conversation">
+              <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{emp.rationale}</p>
+            </Card>
+          )}
+
           <Card title="Private admin notes">
             <NotesEditor id={emp.id} initial={emp.adminNotes ?? ''} />
           </Card>
+
+          {emp.method === 'conversation' && emp.transcript && emp.transcript.length > 0 && (
+            <details className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Conversation transcript ({emp.transcript.length} messages)
+              </summary>
+              <div className="mt-3 space-y-2">
+                {emp.transcript.map((m, i) => (
+                  <div key={i} className="text-sm">
+                    <span className="font-semibold text-slate-500">
+                      {m.role === 'assistant' ? 'Assistant' : emp.name}:
+                    </span>{' '}
+                    <span className="whitespace-pre-wrap text-slate-700">{m.content}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
 
         {/* Right: full DISC-style profile */}

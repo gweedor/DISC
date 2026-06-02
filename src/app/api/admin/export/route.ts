@@ -34,6 +34,7 @@ export async function GET() {
     'C',
     'Completed At',
     'Handout Generated',
+    'Method',
   ];
 
   const rows = employees.map((e) =>
@@ -54,6 +55,7 @@ export async function GET() {
       e.scores.C,
       e.completedAt,
       e.handoutGenerated ? 'yes' : 'no',
+      e.method,
     ]
       .map(csvCell)
       .join(',')

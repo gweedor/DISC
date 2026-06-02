@@ -48,6 +48,15 @@ export function score(selections: AnswerSelection[]): AssessmentResult {
     if (sel.least) leastCounts[sel.least] += 1;
   }
 
+  return resultFromScores(scores, leastCounts);
+}
+
+/**
+ * Derive ranking / primary / secondary / blend / confidence from a raw score
+ * object. Used by the questionnaire (counts of "most" picks) and by the
+ * AI conversational assessment (scores normalised to the same 0..MAX scale).
+ */
+export function resultFromScores(scores: Scores, leastCounts: Scores = ZERO()): AssessmentResult {
   const ranking = [...STYLE_ORDER].sort((a, b) => {
     if (scores[b] !== scores[a]) return scores[b] - scores[a];
     // tiebreak: fewer "least" picks ranks higher

@@ -1,7 +1,12 @@
 import Link from 'next/link';
 import { STRINGS } from '@/lib/content/i18n';
+import { aiConfigured } from '@/lib/ai/client';
+
+export const dynamic = 'force-dynamic';
 
 export default function LandingPage() {
+  const chat = aiConfigured();
+
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-5 py-12">
       <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
@@ -18,29 +23,37 @@ export default function LandingPage() {
         <p className="mt-4 text-sm leading-relaxed text-slate-600">{STRINGS.en.landingSubtitle}</p>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">{STRINGS.vi.landingSubtitle}</p>
 
-        <p className="mt-4 text-xs text-slate-500">
-          {STRINGS.en.landingTime} · {STRINGS.vi.landingTime}
-        </p>
+        {chat ? (
+          <div className="mt-7 space-y-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              {STRINGS.en.chooseMode} · {STRINGS.vi.chooseMode}
+            </p>
 
-        <div className="mt-7">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-            {STRINGS.en.chooseLanguage} · {STRINGS.vi.chooseLanguage}
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Link
-              href="/assess?lang=en"
-              className="rounded-xl bg-slate-900 px-5 py-4 text-center font-medium text-white transition hover:bg-slate-700"
-            >
-              Start in English
-            </Link>
-            <Link
-              href="/assess?lang=vi"
-              className="rounded-xl bg-slate-900 px-5 py-4 text-center font-medium text-white transition hover:bg-slate-700"
-            >
-              Bắt đầu bằng Tiếng Việt
-            </Link>
+            <ModeCard
+              title={`${STRINGS.en.modeChat} · ${STRINGS.vi.modeChat}`}
+              desc={`${STRINGS.en.modeChatDesc}`}
+              hrefEn="/chat?lang=en"
+              hrefVi="/chat?lang=vi"
+              primary
+            />
+            <ModeCard
+              title={`${STRINGS.en.modeQuestionnaire} · ${STRINGS.vi.modeQuestionnaire}`}
+              desc={`${STRINGS.en.modeQuestionnaireDesc}`}
+              hrefEn="/assess?lang=en"
+              hrefVi="/assess?lang=vi"
+            />
           </div>
-        </div>
+        ) : (
+          <div className="mt-7">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+              {STRINGS.en.chooseLanguage} · {STRINGS.vi.chooseLanguage}
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Link href="/assess?lang=en" className="rounded-xl bg-slate-900 px-5 py-4 text-center font-medium text-white transition hover:bg-slate-700">Start in English</Link>
+              <Link href="/assess?lang=vi" className="rounded-xl bg-slate-900 px-5 py-4 text-center font-medium text-white transition hover:bg-slate-700">Bắt đầu bằng Tiếng Việt</Link>
+            </div>
+          </div>
+        )}
 
         <p className="mt-6 rounded-lg bg-slate-50 p-3 text-xs leading-relaxed text-slate-500">
           {STRINGS.en.privacyNote}
@@ -48,10 +61,38 @@ export default function LandingPage() {
       </div>
 
       <p className="mt-6 text-center text-xs text-slate-400">
-        <Link href="/admin" className="hover:text-slate-600 hover:underline">
-          Admin login
-        </Link>
+        <Link href="/admin" className="hover:text-slate-600 hover:underline">Admin login</Link>
       </p>
     </main>
+  );
+}
+
+function ModeCard({
+  title,
+  desc,
+  hrefEn,
+  hrefVi,
+  primary,
+}: {
+  title: string;
+  desc: string;
+  hrefEn: string;
+  hrefVi: string;
+  primary?: boolean;
+}) {
+  return (
+    <div className={`rounded-xl p-4 ring-1 ${primary ? 'bg-slate-50 ring-slate-300' : 'ring-slate-200'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+        {primary && (
+          <span className="rounded bg-slate-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">AI</span>
+        )}
+      </div>
+      <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Link href={hrefEn} className="rounded-lg bg-slate-900 px-3 py-2 text-center text-sm font-medium text-white transition hover:bg-slate-700">English</Link>
+        <Link href={hrefVi} className="rounded-lg bg-slate-900 px-3 py-2 text-center text-sm font-medium text-white transition hover:bg-slate-700">Tiếng Việt</Link>
+      </div>
+    </div>
   );
 }

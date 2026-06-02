@@ -79,6 +79,24 @@ export const STRINGS = {
       'You can close this page now. See you at the event!',
 
     privacyLink: 'Privacy note',
+
+    // Mode choice (landing)
+    chooseMode: 'Choose how you’d like to do it',
+    modeQuestionnaire: 'Quick questionnaire',
+    modeQuestionnaireDesc: '28 multiple-choice questions • about 5–10 minutes',
+    modeChat: 'Chat with our assistant',
+    modeChatDesc: 'A natural 5–10 minute conversation • powered by AI',
+
+    // Chat
+    chatHeading: 'A quick chat',
+    chatBlurb:
+      'Instead of a questionnaire, our assistant will have a short, friendly conversation with you about everyday situations. Just answer naturally — there are no right answers.',
+    chatBegin: 'Start the conversation',
+    chatPlaceholder: 'Type your reply…',
+    chatSend: 'Send',
+    chatTyping: 'typing…',
+    chatFinishing: 'Thanks — finishing up your assessment…',
+    chatError: 'Something went wrong. Please try sending that again.',
   },
   vi: {
     appName: 'Bài Đánh Giá Phong Cách Giao Tiếp Nhóm',
@@ -147,6 +165,24 @@ export const STRINGS = {
       'Bạn có thể đóng trang này. Hẹn gặp bạn tại sự kiện!',
 
     privacyLink: 'Ghi chú quyền riêng tư',
+
+    // Mode choice (landing)
+    chooseMode: 'Chọn cách bạn muốn thực hiện',
+    modeQuestionnaire: 'Bảng câu hỏi nhanh',
+    modeQuestionnaireDesc: '28 câu hỏi trắc nghiệm • khoảng 5–10 phút',
+    modeChat: 'Trò chuyện với trợ lý',
+    modeChatDesc: 'Một cuộc trò chuyện tự nhiên 5–10 phút • hỗ trợ bởi AI',
+
+    // Chat
+    chatHeading: 'Trò chuyện một chút',
+    chatBlurb:
+      'Thay vì một bảng câu hỏi, trợ lý của chúng tôi sẽ trò chuyện ngắn gọn, thân thiện với bạn về những tình huống đời thường. Cứ trả lời tự nhiên — không có câu trả lời đúng hay sai.',
+    chatBegin: 'Bắt đầu trò chuyện',
+    chatPlaceholder: 'Nhập câu trả lời của bạn…',
+    chatSend: 'Gửi',
+    chatTyping: 'đang nhập…',
+    chatFinishing: 'Cảm ơn bạn — đang hoàn tất bài đánh giá…',
+    chatError: 'Đã có lỗi xảy ra. Vui lòng thử gửi lại.',
   },
 } as const;
 
