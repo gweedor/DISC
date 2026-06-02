@@ -4,8 +4,8 @@ import { STYLE_COLORS } from '@/lib/content/styles';
 
 export const dynamic = 'force-dynamic';
 
-export default function HandoutsHubPage() {
-  const employees = listEmployees();
+export default async function HandoutsHubPage() {
+  const employees = await listEmployees();
 
   return (
     <div>

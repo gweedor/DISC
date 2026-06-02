@@ -1,26 +1,31 @@
 // Seeds the database with 25 sample employees for testing/demo.
-// Usage: npm run db:seed   (or npm run db:reseed to reset + seed)
+//   Local:  npm run db:seed
+//   Remote: TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... npm run db:seed
 //
 // Scoring here mirrors src/lib/scoring.ts: each "most like me" pick adds 1
 // point to that style; "least" picks are a tiebreaker only.
-import Database from 'better-sqlite3';
-import fs from 'node:fs';
+import { createClient } from '@libsql/client';
 import path from 'node:path';
 
 const STYLE_ORDER = ['D', 'I', 'S', 'C'];
 const NUM_QUESTIONS = 28;
 
-const dbPath =
-  process.env.DISC_DB_PATH && process.env.DISC_DB_PATH.trim()
-    ? process.env.DISC_DB_PATH
-    : path.join(process.cwd(), 'data', 'disc.db');
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+function connection() {
+  const remote = process.env.TURSO_DATABASE_URL;
+  if (remote && remote.trim()) {
+    return { url: remote.trim(), authToken: process.env.TURSO_AUTH_TOKEN };
+  }
+  const p =
+    process.env.DISC_DB_PATH && process.env.DISC_DB_PATH.trim()
+      ? process.env.DISC_DB_PATH
+      : path.join(process.cwd(), 'data', 'disc.db');
+  return { url: `file:${p}` };
+}
 
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
+const db = createClient(connection());
 
-// Keep this schema in sync with migrate() in src/lib/db.ts
-db.exec(`
+// Keep this schema in sync with SCHEMA in src/lib/db.ts
+await db.execute(`
   CREATE TABLE IF NOT EXISTS employees (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     name            TEXT    NOT NULL,
@@ -64,7 +69,6 @@ function weightedPick(weights) {
 }
 
 function buildAnswers(target) {
-  // weight strongly toward the target style, lightly toward others
   const mostW = { D: 1, I: 1, S: 1, C: 1 };
   mostW[target] = 4.5;
   const answers = [];
@@ -73,13 +77,8 @@ function buildAnswers(target) {
 
   for (let q = 1; q <= NUM_QUESTIONS; q++) {
     const most = weightedPick(mostW);
-    // least: prefer a style that is NOT the target, sometimes omit
     let leastStyle = null;
     if (rng() < 0.7) {
-      const leastW = { D: 1, I: 1, S: 1, C: 1 };
-      leastW[target] = 3; // most likely to mark the opposite-ish
-      leastW[most] = 0; // never the same as most
-      // pick the "least like me"
       const candidates = STYLE_ORDER.filter((s) => s !== most);
       leastStyle = candidates[Math.floor(rng() * candidates.length)];
     }
@@ -126,56 +125,49 @@ const PEOPLE = [
   ['Trần Đức Thắng', 'Product', 'Product Owner', 'I'],
 ];
 
-const insert = db.prepare(`
-  INSERT INTO employees
-    (name, department, role, email, language, answers_json, scores_json, least_json,
-     primary_style, secondary_style, blend, confidence, handout_generated, completed_at)
-  VALUES
-    (@name, @department, @role, @email, @language, @answers_json, @scores_json, @least_json,
-     @primary_style, @secondary_style, @blend, @confidence, @handout_generated, @completed_at)
-`);
-
 const baseTime = Date.now() - 1000 * 60 * 60 * 24 * 2; // 2 days ago
-let i = 0;
+const statements = [];
 
-const seedAll = db.transaction(() => {
-  for (const [name, department, role, target] of PEOPLE) {
-    const { answers, scores, least } = buildAnswers(target);
-    const ranking = rank(scores, least);
-    const primary = ranking[0];
-    const secondary = ranking[1];
-    const gap = scores[primary] - scores[secondary];
-    const confidence = gap >= 3 ? 'High' : gap >= 1 ? 'Medium' : 'Balanced';
-    const slug = name
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[đĐ]/g, 'd')
-      .toLowerCase()
-      .replace(/[^a-z]+/g, '.')
-      .replace(/^\.|\.$/g, '');
+PEOPLE.forEach(([name, department, role, target], i) => {
+  const { answers, scores, least } = buildAnswers(target);
+  const ranking = rank(scores, least);
+  const primary = ranking[0];
+  const secondary = ranking[1];
+  const gap = scores[primary] - scores[secondary];
+  const confidence = gap >= 3 ? 'High' : gap >= 1 ? 'Medium' : 'Balanced';
+  const slug = name
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .toLowerCase()
+    .replace(/[^a-z]+/g, '.')
+    .replace(/^\.|\.$/g, '');
 
-    insert.run({
+  statements.push({
+    sql: `INSERT INTO employees
+      (name, department, role, email, language, answers_json, scores_json, least_json,
+       primary_style, secondary_style, blend, confidence, handout_generated, completed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [
       name,
       department,
       role,
-      email: `${slug}@example.com`,
-      language: i % 3 === 0 ? 'vi' : 'en',
-      answers_json: JSON.stringify(answers),
-      scores_json: JSON.stringify(scores),
-      least_json: JSON.stringify(least),
-      primary_style: primary,
-      secondary_style: secondary,
-      blend: `${primary}/${secondary}`,
+      `${slug}@example.com`,
+      i % 3 === 0 ? 'vi' : 'en',
+      JSON.stringify(answers),
+      JSON.stringify(scores),
+      JSON.stringify(least),
+      primary,
+      secondary,
+      `${primary}/${secondary}`,
       confidence,
-      handout_generated: 0,
-      completed_at: new Date(baseTime + i * 1000 * 60 * 37).toISOString(),
-    });
-    i++;
-  }
+      0,
+      new Date(baseTime + i * 1000 * 60 * 37).toISOString(),
+    ],
+  });
 });
 
-seedAll();
+await db.batch(statements, 'write');
 
-const count = db.prepare('SELECT COUNT(*) AS n FROM employees').get().n;
-console.log(`Seeded ${PEOPLE.length} sample employees. Total in database: ${count}.`);
-db.close();
+const res = await db.execute('SELECT COUNT(*) AS n FROM employees');
+console.log(`Seeded ${PEOPLE.length} sample employees. Total in database: ${Number(res.rows[0].n)}.`);

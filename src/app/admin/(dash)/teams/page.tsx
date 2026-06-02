@@ -6,12 +6,12 @@ import TeamControls from '@/components/TeamControls';
 
 export const dynamic = 'force-dynamic';
 
-export default function TeamsPage({
+export default async function TeamsPage({
   searchParams,
 }: {
   searchParams: { teams?: string; seed?: string };
 }) {
-  const employees = listEmployees();
+  const employees = await listEmployees();
   const numTeams = Math.max(1, Number(searchParams.teams) || 5);
   const seed = Number(searchParams.seed) || 1;
   const teams = employees.length ? generateTeams(employees, numTeams, seed) : [];

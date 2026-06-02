@@ -23,13 +23,13 @@ export async function POST(req: NextRequest) {
 
   switch (body.action) {
     case 'notes':
-      updateAdminNotes(id, String(body.notes ?? ''));
+      await updateAdminNotes(id, String(body.notes ?? ''));
       return NextResponse.json({ ok: true });
     case 'handout':
-      markHandoutGenerated(id, body.value !== false);
+      await markHandoutGenerated(id, body.value !== false);
       return NextResponse.json({ ok: true });
     case 'delete':
-      deleteEmployee(id);
+      await deleteEmployee(id);
       return NextResponse.json({ ok: true });
     default:
       return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

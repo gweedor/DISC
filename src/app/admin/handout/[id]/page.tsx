@@ -9,7 +9,7 @@ import PrintButton from '@/components/PrintButton';
 
 export const dynamic = 'force-dynamic';
 
-export default function HandoutPage({
+export default async function HandoutPage({
   params,
   searchParams,
 }: {
@@ -19,11 +19,11 @@ export default function HandoutPage({
   if (!isAdmin()) redirect('/admin/login');
 
   const id = Number(params.id);
-  const emp = getEmployee(id);
+  const emp = await getEmployee(id);
   if (!emp) notFound();
 
   // Viewing/printing a handout marks it as generated.
-  markHandoutGenerated(id, true);
+  await markHandoutGenerated(id, true);
 
   const lang: Lang = searchParams.lang === 'vi' ? 'vi' : 'en';
   const data = buildHandout(emp, lang);

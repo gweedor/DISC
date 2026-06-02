@@ -16,7 +16,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const employees = listEmployees();
+  const employees = await listEmployees();
   const header = [
     'ID',
     'Name',

@@ -1,21 +1,22 @@
-// Deletes the local SQLite database so it can be recreated fresh.
-// Usage: npm run db:reset   (then npm run db:seed to reload sample data)
-import fs from 'node:fs';
+// Clears the database so it can be recreated fresh.
+// Works for both local files and a remote Turso database.
+//   Local:  npm run db:reset
+//   Remote: TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... npm run db:reset
+import { createClient } from '@libsql/client';
 import path from 'node:path';
 
-const dbPath =
-  process.env.DISC_DB_PATH && process.env.DISC_DB_PATH.trim()
-    ? process.env.DISC_DB_PATH
-    : path.join(process.cwd(), 'data', 'disc.db');
-
-const suffixes = ['', '-journal', '-wal', '-shm'];
-let removed = 0;
-for (const s of suffixes) {
-  const f = dbPath + s;
-  if (fs.existsSync(f)) {
-    fs.rmSync(f);
-    removed++;
+function connection() {
+  const remote = process.env.TURSO_DATABASE_URL;
+  if (remote && remote.trim()) {
+    return { url: remote.trim(), authToken: process.env.TURSO_AUTH_TOKEN };
   }
+  const p =
+    process.env.DISC_DB_PATH && process.env.DISC_DB_PATH.trim()
+      ? process.env.DISC_DB_PATH
+      : path.join(process.cwd(), 'data', 'disc.db');
+  return { url: `file:${p}` };
 }
 
-console.log(removed ? `Removed database files at ${dbPath}` : `No database found at ${dbPath} (nothing to reset).`);
+const db = createClient(connection());
+await db.execute('DROP TABLE IF EXISTS employees');
+console.log('Database cleared (employees table dropped). Run db:seed to reload sample data.');

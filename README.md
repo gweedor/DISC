@@ -41,7 +41,8 @@ enhancement can be added later without changing how scoring works.
 
 - **Next.js 14** (App Router) + **React 18** + **TypeScript**
 - **Tailwind CSS** for a clean, mobile-friendly UI
-- **SQLite** via `better-sqlite3` (local file, zero-config)
+- **libSQL** (SQLite-compatible) — a local file in dev, a free **Turso**
+  database in production (works on Vercel and other serverless hosts)
 - **CSV export** built-in; **handouts/reports print to PDF** via the browser
   (print-friendly HTML — no extra PDF library needed)
 
@@ -73,7 +74,9 @@ The SQLite database is created automatically at `./data/disc.db` on first use.
 | ----------------------- | --------------------- | ---------------------------------------- |
 | `ADMIN_PASSWORD`        | `disc-admin-2026`     | Password for the admin dashboard         |
 | `ADMIN_SESSION_SECRET`  | `disc-dev-secret-...` | Signs the admin session cookie           |
-| `DISC_DB_PATH`          | `./data/disc.db`      | Override the SQLite file location        |
+| `DISC_DB_PATH`          | `./data/disc.db`      | Local SQLite file location (dev)         |
+| `TURSO_DATABASE_URL`    | _(unset)_             | Hosted Turso DB URL for production        |
+| `TURSO_AUTH_TOKEN`      | _(unset)_             | Turso auth token (with the URL above)     |
 
 > ⚠️ **Change `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` before the event.**
 
@@ -179,8 +182,9 @@ npm run build
 npm run start        # serves on http://localhost:3000
 ```
 
-For a hosted version you can swap SQLite for Postgres/Supabase by replacing the
-queries in `src/lib/db.ts` — the rest of the app is storage-agnostic.
+To put it online, see **[DEPLOY.md](./DEPLOY.md)**. The quickest path is
+**Vercel + Turso** (both free) — the same code uses a local file in dev and a
+hosted Turso database in production, with no code changes.
 
 ---
 
@@ -208,8 +212,9 @@ department, role, optional email, language, answers, and scores.
 - **Results release = Option A (print).** Employees never see results in-app; the
   admin prints handouts and gives them out during the event. (Emailing a release
   link was deliberately left out to keep things simple, per the brief.)
-- **SQLite is local/file-based.** Great for a laptop or a single internal server.
-  For multi-instance hosting, move to Postgres/Supabase (see above).
+- **Storage is libSQL/SQLite.** A local file in dev; a hosted Turso database in
+  production (see DEPLOY.md). Fine for an internal event; for very high write
+  volume you'd move to a larger managed database.
 - **PDF = browser print.** We use print-friendly HTML + the browser’s “Save as
   PDF” rather than bundling a PDF engine, to keep the app lightweight.
 - **Manual team editing** is not built into the first version (you can regenerate

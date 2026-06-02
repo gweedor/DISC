@@ -1,102 +1,106 @@
-# Putting the app online
+# Deploying the app
 
-The app is a normal Node/Next.js server that stores data in a **SQLite file**,
-so it needs a host with a **persistent disk** (not a purely serverless one).
-Everything below is already wired up — pick one path.
+The app stores data in **libSQL** (SQLite-compatible). Locally it uses a file;
+in production it uses a free **Turso** database. The recommended hosted setup is
+**Vercel + Turso** — both have free tiers and it's the fastest path to a public
+URL.
 
 > Before going live, set a real **`ADMIN_PASSWORD`** and a long random
-> **`ADMIN_SESSION_SECRET`**. The defaults are only for local testing.
+> **`ADMIN_SESSION_SECRET`**.
 
 ---
 
-## Option A — Render (closest to one-click)
+## ⭐ Vercel + Turso (recommended, ~10 minutes)
 
-1. Push this repo to GitHub (already done on your branch).
-2. Go to <https://render.com> → **New** → **Blueprint** → connect this repo.
-3. Render reads [`render.yaml`](./render.yaml): it builds the Docker image and
-   attaches a 1 GB persistent disk at `/data` for the database.
-4. When prompted, set **`ADMIN_PASSWORD`** (Render auto-generates the session
-   secret). Click **Apply**.
-5. In ~5 minutes you get a public URL like `https://disc-assessment.onrender.com`.
-   - Employees: share the base URL.
-   - Admin: `<url>/admin`.
+### 1. Create the database (Turso)
+- Sign up at <https://turso.tech> (free).
+- Easiest: in the Turso dashboard, **Create Database** → open it → **Connect/CLI**
+  to get its **URL** (`libsql://...`) and create a **token**.
+- Or with the CLI:
+  ```bash
+  curl -sSfL https://get.tur.so/install.sh | bash
+  turso auth login
+  turso db create disc-assessment
+  turso db show disc-assessment --url         # -> TURSO_DATABASE_URL
+  turso db tokens create disc-assessment      # -> TURSO_AUTH_TOKEN
+  ```
 
-> A persistent disk requires Render's paid **Starter** plan (~$7/mo). That's the
-> only reliable way to keep SQLite data safe across restarts on Render.
+### 2. Deploy the app (Vercel)
+- Go to <https://vercel.com> → **Add New… → Project** → import this GitHub repo.
+- Framework preset auto-detects **Next.js**. Leave build settings as default.
+- Under **Environment Variables**, add:
+  | Name | Value |
+  |---|---|
+  | `TURSO_DATABASE_URL` | `libsql://...` from step 1 |
+  | `TURSO_AUTH_TOKEN` | the token from step 1 |
+  | `ADMIN_PASSWORD` | a password you choose |
+  | `ADMIN_SESSION_SECRET` | any long random string |
+- Click **Deploy**. In ~2 minutes you get a URL like
+  `https://disc-assessment.vercel.app`.
 
----
+### 3. Use it
+- Employees: share the base URL.
+- Admin: `<url>/admin` (sign in with `ADMIN_PASSWORD`).
+- The database tables are created automatically on first use.
+- (Optional) load 25 demo employees from your laptop:
+  ```bash
+  TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... npm run db:seed
+  ```
 
-## Option B — Railway (usage-based, has free credit)
-
-1. <https://railway.app> → **New Project** → **Deploy from GitHub repo**.
-2. Railway auto-detects the [`Dockerfile`](./Dockerfile).
-3. Add a **Volume** mounted at `/data`.
-4. Add variables: `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`,
-   and `DISC_DB_PATH=/data/disc.db`.
-5. Deploy → click **Generate Domain** for a public URL.
-
----
-
-## Option C — Fly.io (good free-ish tier)
-
-```bash
-# one-time
-curl -L https://fly.io/install.sh | sh
-fly auth login
-
-# from this repo
-fly launch --no-deploy           # detects the Dockerfile; pick a name/region
-fly volumes create disc_data --size 1
-# add a [mounts] entry to fly.toml:  source = "disc_data", destination = "/data"
-fly secrets set ADMIN_PASSWORD=your-password ADMIN_SESSION_SECRET=$(openssl rand -hex 24)
-fly deploy
-```
+That's it — always-on, free, and data persists. ✅
 
 ---
 
-## Option D — Instant public URL for event day (zero hosting account)
+## Cloudflare Pages + Turso (alternative)
 
-If you just need people to reach it for a day or two and can leave a computer
-running, expose your local server with a free tunnel:
+Cloudflare Pages can host Next.js via the official adapter:
+1. Create the Turso database (same as above).
+2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git**.
+3. Build command: `npx @cloudflare/next-on-pages@1`; output dir: `.vercel/output/static`.
+4. Add the same four environment variables, then deploy.
+
+(Vercel is simpler; use this only if you specifically want Cloudflare.)
+
+---
+
+## Railway / Render / Fly.io / any Docker host (keeps it all in one place)
+
+A `Dockerfile` is included. These hosts run the Node server directly. You can
+either use Turso (set the two `TURSO_*` vars) or a local SQLite file on a
+persistent volume (set `DISC_DB_PATH=/data/disc.db` and mount a volume at
+`/data`).
+
+- **Railway:** New Project → Deploy from GitHub → it detects the Dockerfile →
+  add env vars → **Generate Domain**.
+- **Render:** New → Blueprint (uses `render.yaml`) → set `ADMIN_PASSWORD`.
+- **Any Docker host:**
+  ```bash
+  docker build -t disc-assessment .
+  docker run -p 3000:3000 \
+    -e TURSO_DATABASE_URL=libsql://... -e TURSO_AUTH_TOKEN=... \
+    -e ADMIN_PASSWORD=your-password \
+    -e ADMIN_SESSION_SECRET=$(openssl rand -hex 24) \
+    disc-assessment
+  ```
+
+---
+
+## Instant public URL for event day (no hosting account)
+
+If you can leave a computer running, expose a local server with a free tunnel:
 
 ```bash
 npm install
-npm run build && npm run start        # serves on http://localhost:3000
+npm run build && npm run start            # http://localhost:3000 (uses a local file DB)
 
 # in another terminal — no account needed:
 npx cloudflared tunnel --url http://localhost:3000
-# → prints a public https://<random>.trycloudflare.com URL
-```
-
-Anyone with that URL can use it while your machine + the tunnel stay running.
-(`ngrok http 3000` works the same way if you prefer ngrok.)
-
----
-
-## Any Docker host (Cloud Run, a VPS, etc.)
-
-```bash
-docker build -t disc-assessment .
-docker run -p 3000:3000 -v disc_data:/data \
-  -e ADMIN_PASSWORD=your-password \
-  -e ADMIN_SESSION_SECRET=$(openssl rand -hex 24) \
-  disc-assessment
+# -> prints a public https://<random>.trycloudflare.com URL
 ```
 
 ---
 
-## After deploying
-
-- Visit `<url>/admin` and sign in with your `ADMIN_PASSWORD`.
-- (Optional) load demo data: run `npm run db:seed` against the same
-  `DISC_DB_PATH`, or just let real employees complete the assessment.
-- Share the base URL with employees. They will **not** see their results — you
+## After deploying (any option)
+- Visit `<url>/admin`, sign in, and confirm the dashboard loads.
+- Share the **base URL** with employees. They will **not** see results — you
   print handouts from the admin dashboard during the event.
-
-## Note on serverless hosts (Vercel / Cloudflare)
-
-Vercel and Cloudflare Workers don't keep a writable local disk, so the current
-SQLite setup won't persist there. To use them, swap the data layer in
-`src/lib/db.ts` for a hosted database (e.g. Postgres/Neon/Supabase, or
-Cloudflare D1). The rest of the app is storage-agnostic and wouldn't need to
-change. Ask and this can be done.

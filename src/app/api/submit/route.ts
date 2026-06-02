@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   const result = score(selections);
 
-  const id = insertEmployee({
+  const id = await insertEmployee({
     name,
     department,
     role,

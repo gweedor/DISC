@@ -6,8 +6,8 @@ import type { Style } from '@/lib/content/questions';
 
 export const dynamic = 'force-dynamic';
 
-export default function DashboardPage() {
-  const employees = listEmployees();
+export default async function DashboardPage() {
+  const employees = await listEmployees();
 
   const counts: Record<Style, number> = { D: 0, I: 0, S: 0, C: 0 };
   for (const e of employees) counts[e.primary]++;

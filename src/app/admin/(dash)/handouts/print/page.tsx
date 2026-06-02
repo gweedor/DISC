@@ -7,16 +7,16 @@ import PrintButton from '@/components/PrintButton';
 
 export const dynamic = 'force-dynamic';
 
-export default function PrintAllHandoutsPage({
+export default async function PrintAllHandoutsPage({
   searchParams,
 }: {
   searchParams: { lang?: string };
 }) {
   const lang: Lang = searchParams.lang === 'vi' ? 'vi' : 'en';
-  const employees = listEmployees();
+  const employees = await listEmployees();
 
   // Opening the full set marks every handout as generated.
-  for (const e of employees) markHandoutGenerated(e.id, true);
+  await Promise.all(employees.map((e) => markHandoutGenerated(e.id, true)));
 
   return (
     <div>

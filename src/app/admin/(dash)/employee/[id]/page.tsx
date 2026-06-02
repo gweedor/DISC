@@ -10,8 +10,8 @@ import DeleteEmployeeButton from '@/components/DeleteEmployeeButton';
 
 export const dynamic = 'force-dynamic';
 
-export default function EmployeeResultPage({ params }: { params: { id: string } }) {
-  const emp = getEmployee(Number(params.id));
+export default async function EmployeeResultPage({ params }: { params: { id: string } }) {
+  const emp = await getEmployee(Number(params.id));
   if (!emp) notFound();
 
   const p = STYLE_CONTENT[emp.primary].en;

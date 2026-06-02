@@ -6,8 +6,8 @@ import PrintButton from '@/components/PrintButton';
 
 export const dynamic = 'force-dynamic';
 
-export default function TeamReportPage() {
-  const employees = listEmployees();
+export default async function TeamReportPage() {
+  const employees = await listEmployees();
   const report = computeTeamReport(employees);
 
   return (

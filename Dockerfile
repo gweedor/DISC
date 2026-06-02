@@ -8,7 +8,7 @@
 # ---- deps ----
 FROM node:20-slim AS deps
 WORKDIR /app
-# better-sqlite3 ships prebuilt binaries; build tools are a fallback if needed.
+# native deps ship prebuilt binaries; build tools are a fallback if needed.
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
@@ -34,7 +34,6 @@ RUN mkdir -p /data
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 
 EXPOSE 3000
 CMD ["node", "server.js"]
