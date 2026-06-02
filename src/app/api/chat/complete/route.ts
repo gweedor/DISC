@@ -79,7 +79,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, id });
   } catch (err) {
-    console.error('scoring failed', err);
-    return NextResponse.json({ error: 'Could not complete the assessment. Please try again.' }, { status: 502 });
+    const e = err as { status?: number; message?: string; error?: { error?: { message?: string } } };
+    const detail = e?.error?.error?.message || e?.message || String(err);
+    console.error('scoring failed', e?.status, detail);
+    return NextResponse.json(
+      { error: 'Could not complete the assessment.', detail, status: e?.status ?? null },
+      { status: 502 }
+    );
   }
 }

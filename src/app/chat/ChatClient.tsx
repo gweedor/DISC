@@ -42,8 +42,11 @@ export default function ChatClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lang, messages: history }),
       });
-      if (!res.ok) throw new Error('turn failed');
-      const data = (await res.json()) as { reply: string; done: boolean };
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.detail ? `${t(lang, 'chatError')} (${data.detail})` : t(lang, 'chatError'));
+        return;
+      }
       const next = [...history, { role: 'assistant' as const, content: data.reply }];
       setMessages(next);
       if (data.done) await complete(next);

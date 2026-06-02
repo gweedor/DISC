@@ -37,7 +37,12 @@ export async function POST(req: NextRequest) {
     const { reply, done } = await runInterviewTurn(history, lang);
     return NextResponse.json({ reply, done });
   } catch (err) {
-    console.error('chat turn failed', err);
-    return NextResponse.json({ error: 'The assistant is unavailable right now. Please try again.' }, { status: 502 });
+    const e = err as { status?: number; message?: string; error?: { error?: { message?: string } } };
+    const detail = e?.error?.error?.message || e?.message || String(err);
+    console.error('chat turn failed', e?.status, detail);
+    return NextResponse.json(
+      { error: 'The assistant is unavailable right now.', detail, status: e?.status ?? null },
+      { status: 502 }
+    );
   }
 }
