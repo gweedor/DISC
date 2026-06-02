@@ -1,0 +1,20 @@
+# Render.com blueprint. In Render: New → Blueprint → connect this repo.
+# Render reads this file, builds the Docker image, and attaches a persistent
+# disk so the SQLite database survives restarts and redeploys.
+services:
+  - type: web
+    name: disc-assessment
+    runtime: docker
+    plan: starter # a paid plan is required for a persistent disk
+    healthCheckPath: /
+    envVars:
+      - key: DISC_DB_PATH
+        value: /data/disc.db
+      - key: ADMIN_PASSWORD
+        sync: false # set this yourself in the Render dashboard before going live
+      - key: ADMIN_SESSION_SECRET
+        generateValue: true # Render generates a long random secret for you
+    disk:
+      name: disc-data
+      mountPath: /data
+      sizeGB: 1
